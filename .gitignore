@@ -1,0 +1,7 @@
+instance/
+app.py
+config.py
+models.py
+ohma_tasks.db
+resources.py
+spec_tasks.db
