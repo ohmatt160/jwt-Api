@@ -21,10 +21,12 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # Looking to send emails in production? Check out our Email API/SMTP product!
 app.config['MAIL_SERVER']='sandbox.smtp.mailtrap.io'
 app.config['MAIL_PORT'] = 2525
-app.config['MAIL_USERNAME'] = 'f648f76f69a606'
-app.config['MAIL_PASSWORD'] = '****1bd7'
+app.config['MAIL_USERNAME'] = 'd5c82933204588'
+app.config['MAIL_PASSWORD'] = '48a454b81a1e63'
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USE_SSL'] = False
+# set expiration in seconds (example: 24 hours)
+app.config['EMAIL_TOKEN_EXPIRATION'] = 24 * 60 * 60  # 86400 seconds
 SECRET_KEY = 'your-secret-key'
 JWT_SECRET_KEY = 'your-jwt-secret'
 app.config['SECRET_KEY'] = SECRET_KEY
@@ -127,29 +129,21 @@ class UserRegister(Resource):
     def post(self):
         try:
             data = request.get_json()
-            # if User.query.filter((User.username == data['username']) | (User.email == data['email'])).first():
-            #     return {"message": "Username or email already exists"}, 400
+            if User.query.filter((User.username == data['username']) | (User.email == data['email'])).first():
+                return {"message": "Username or email already exists"}, 400
+
+            db_name = f"{data['username']}_tasks.db"
+            new_user = User(username=data['username'], email=data['email'], db_name=db_name)
+            new_user.set_password(data['password'])
+            db.session.add(new_user)
+            db.session.commit()
+
+
+
 
             token = generate_token(data['email'])
             send_email(data['email'], "Verify Your Account", f"Your verification token: {token}")
             return {"message": "User registered. Check your email for verification token."}, 201
-            token_request = request.get_json['token']
-            email = confirm_token(token_request)
-
-            if not email:
-                return jsonify({"message": "Verification link is invalid or expired"}), 400
-
-            user = User.query.filter_by(email=email).first()
-            if user and not user.is_verified:
-                user.is_verified = True
-                db_name = f"{data['username']}_tasks.db"
-                new_user = User(username=data['username'], email=data['email'], db_name=db_name)
-                new_user.set_password(data['password'])
-                db.session.add(new_user)
-                db.session.commit()
-                return jsonify({"message": "Account verified successfully!"})
-
-            return jsonify({"message": "Account already verified"}), 200
 
 
 
